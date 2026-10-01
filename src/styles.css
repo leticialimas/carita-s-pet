@@ -166,7 +166,7 @@
   html,
   body {
     font-family: var(--font-vintage);
-    background-image: var(--stripes);
+    background-image: repeating-linear-gradient(90deg,#FFFFFF 0px,#FFFFFF 22px,#E6F2FF 22px,#E6F2FF 44px);
     background-attachment: fixed;
   }
 
@@ -211,3 +211,6 @@
   );
   opacity: 0.92;
 }
+
+.input-vintage{width:100%;margin-top:.25rem;border:1px solid var(--input);border-radius:.5rem;background:#fff;padding:.65rem .8rem;outline:none;font-family:var(--font-vintage)}
+.input-vintage:focus{border-color:#A0522D;box-shadow:0 0 0 2px color-mix(in srgb,#A0522D 18%,transparent)}
