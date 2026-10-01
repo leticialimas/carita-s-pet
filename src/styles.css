@@ -71,36 +71,36 @@
   --popover: oklch(0.99 0.008 230);
   --popover-foreground: oklch(0.27 0.035 45);
   /* Marrom #A0522D */
-  --primary: oklch(0.494 0.126 43.6);
+  --primary: oklch(0.48 0.12 230);
   --primary-foreground: oklch(0.985 0.01 90);
   /* Rosa claro #FFB6C1 */
-  --secondary: oklch(0.842 0.077 12.9);
-  --secondary-foreground: oklch(0.35 0.07 30);
+  --secondary: oklch(0.91 0.055 205);
+  --secondary-foreground: oklch(0.28 0.05 225);
   --muted: oklch(0.93 0.02 232);
-  --muted-foreground: oklch(0.42 0.05 42);
+  --muted-foreground: oklch(0.43 0.045 225);
   /* Amarelo claro #FFFB95 */
-  --accent: oklch(0.966 0.129 104.6);
-  --accent-foreground: oklch(0.35 0.07 40);
+  --accent: oklch(0.94 0.06 165);
+  --accent-foreground: oklch(0.25 0.05 190);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0.01 90);
   --border: oklch(0.86 0.03 232);
   --input: oklch(0.88 0.025 232);
-  --ring: oklch(0.494 0.126 43.6);
-  --chart-1: oklch(0.494 0.126 43.6);
-  --chart-2: oklch(0.842 0.077 12.9);
-  --chart-3: oklch(0.966 0.129 104.6);
+  --ring: oklch(0.48 0.12 230);
+  --chart-1: oklch(0.48 0.12 230);
+  --chart-2: oklch(0.68 0.09 200);
+  --chart-3: oklch(0.75 0.12 165);
   --chart-4: oklch(0.7 0.06 232);
   --chart-5: oklch(0.6 0.08 60);
   --sidebar: oklch(0.97 0.015 232);
   --sidebar-foreground: oklch(0.32 0.06 45);
-  --sidebar-primary: oklch(0.494 0.126 43.6);
+  --sidebar-primary: oklch(0.48 0.12 230);
   --sidebar-primary-foreground: oklch(0.985 0.01 90);
-  --sidebar-accent: oklch(0.842 0.077 12.9);
-  --sidebar-accent-foreground: oklch(0.35 0.07 30);
+  --sidebar-accent: oklch(0.91 0.055 205);
+  --sidebar-accent-foreground: oklch(0.28 0.05 225);
   --sidebar-border: oklch(0.86 0.03 232);
-  --sidebar-ring: oklch(0.494 0.126 43.6);
+  --sidebar-ring: oklch(0.48 0.12 230);
 
-  --font-vintage: "Times New Roman", Times, Georgia, serif;
+  --font-vintage: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --stripes: repeating-linear-gradient(
     90deg,
     #ebf4f6 0px,
@@ -108,7 +108,7 @@
     #e6f2ff 22px,
     #e6f2ff 44px
   );
-  --shadow-vintage: 0 6px 18px -8px color-mix(in oklab, var(--primary) 40%, transparent);
+  --shadow-vintage: 0 10px 30px -16px color-mix(in oklab, var(--primary) 45%, transparent);
 }
 
 
