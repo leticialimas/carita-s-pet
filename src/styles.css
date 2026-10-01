@@ -166,7 +166,7 @@
   html,
   body {
     font-family: var(--font-vintage);
-    background-image: repeating-linear-gradient(90deg,#FFFFFF 0px,#FFFFFF 22px,#E6F2FF 22px,#E6F2FF 44px);
+    background-image: repeating-linear-gradient(90deg,#FFFFFF 0px,#FFFFFF 28px,#E6F2FF 28px,#E6F2FF 56px);
     background-attachment: fixed;
   }
 
