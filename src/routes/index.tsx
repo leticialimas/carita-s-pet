@@ -1,651 +1,166 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Cat,
-  Dog,
-  Heart,
-  Home,
-  MapPin,
-  Menu,
-  MessageCircle,
-  PawPrint,
-  Search,
-  Share2,
-  ShieldCheck,
-  Stethoscope,
-  Upload,
-  X,
+  Cat, Dog, Heart, Home, MessageCircle, Paperclip, PawPrint, Search,
+  ShieldCheck, Headphones, Settings, Send, X, Copy, Plus, Trash2
 } from "lucide-react";
-import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Carita's Pets | Adoção responsável em Brasília - DF" },
-      {
-        name: "description",
-        content:
-          "Interface mobile-first da Carita's Pets para adoção de cães e gatos, vaquinhas e alertas de pets desaparecidos no DF.",
-      },
-      { property: "og:title", content: "Carita's Pets | Adoção responsável em Brasília - DF" },
-      {
-        property: "og:description",
-        content:
-          "Conheça pets para adoção, apoie vaquinhas e compartilhe alertas de animais desaparecidos em Brasília - DF.",
-      },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
+      { title: "Carita's Pets | Adoção responsável no DF" },
+      { name: "description", content: "Adoção responsável de cães e gatos em Brasília - DF." },
     ],
   }),
   component: CaritasPetsApp,
 });
 
-type View = "inicio" | "adocao" | "vaquinhas" | "desaparecidos";
-type Pet = {
-  id: string;
-  nome: string;
-  especie: "Cão" | "Gato";
-  idade: string;
-  regiao: string;
-  foto: string;
-  temperamento: string;
-};
+type View = "inicio" | "pets" | "vaquinhas" | "suporte" | "admin";
+type Role = "adotante" | "ong" | "protetor";
+type Pet = { id:string; nome:string; especie:"Cão"|"Gato"; idade:string; regiao:string; foto:string; temperamento:string; doador:string };
+type Campaign = { id:string; titulo:string; foto:string; arrecadado:number; meta:number; pix:string; petId?:string };
+type Message = { id:string; sender:"eu"|"protetor"; text?:string; attachment?:string; time:string };
 
-type Vaquinha = {
-  id: string;
-  titulo: string;
-  foto: string;
-  arrecadado: number;
-  meta: number;
-  categoria: string;
-};
-
-type Desaparecido = {
-  id: string;
-  nome: string;
-  especie: string;
-  local: string;
-  foto: string;
-  detalhe: string;
-};
-
-const pets: Pet[] = [
-  {
-    id: "mel",
-    nome: "Mel",
-    especie: "Cão",
-    idade: "2 anos",
-    regiao: "Asa Norte",
-    foto: "https://images.unsplash.com/photo-1552053831-71594a27632d?w=900&q=80",
-    temperamento: "Dócil e calma",
-  },
-  {
-    id: "tobias",
-    nome: "Tobias",
-    especie: "Cão",
-    idade: "8 meses",
-    regiao: "Cruzeiro",
-    foto: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=900&q=80",
-    temperamento: "Brincalhão",
-  },
-  {
-    id: "amora",
-    nome: "Amora",
-    especie: "Gato",
-    idade: "1 ano",
-    regiao: "Águas Claras",
-    foto: "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=900&q=80",
-    temperamento: "Carinhosa",
-  },
-  {
-    id: "nina",
-    nome: "Nina",
-    especie: "Gato",
-    idade: "3 anos",
-    regiao: "Sobradinho",
-    foto: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=900&q=80",
-    temperamento: "Independente",
-  },
-  {
-    id: "caramelo",
-    nome: "Caramelo",
-    especie: "Cão",
-    idade: "3 anos",
-    regiao: "Gama",
-    foto: "https://images.unsplash.com/photo-1561037404-61cd46aa615b?w=900&q=80",
-    temperamento: "Companheiro",
-  },
-  {
-    id: "pipoca",
-    nome: "Pipoca",
-    especie: "Gato",
-    idade: "4 meses",
-    regiao: "Cruzeiro",
-    foto: "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=900&q=80",
-    temperamento: "Curiosa",
-  },
+const initialPets:Pet[] = [
+ {id:"mel",nome:"Mel",especie:"Cão",idade:"2 anos",regiao:"Asa Norte",foto:"https://images.unsplash.com/photo-1552053831-71594a27632d?w=900&q=80",temperamento:"Dócil",doador:"Patinhas do Cerrado"},
+ {id:"tobias",nome:"Tobias",especie:"Cão",idade:"8 meses",regiao:"Cruzeiro",foto:"https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=900&q=80",temperamento:"Brincalhão",doador:"Ana Protetora"},
+ {id:"amora",nome:"Amora",especie:"Gato",idade:"1 ano",regiao:"Águas Claras",foto:"https://images.unsplash.com/photo-1518717758536-85ae29035b6d?w=900&q=80",temperamento:"Carinhosa",doador:"ONG Bigodes do DF"},
+ {id:"nina",nome:"Nina",especie:"Gato",idade:"3 anos",regiao:"Sobradinho",foto:"https://images.unsplash.com/photo-1574158622682-e40e69881006?w=900&q=80",temperamento:"Tranquila",doador:"Patinhas do Cerrado"},
 ];
 
-const vaquinhas: Vaquinha[] = [
-  {
-    id: "luna",
-    titulo: "Cirurgia ortopédica da Luna",
-    foto: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=900&q=80",
-    arrecadado: 1850,
-    meta: 3200,
-    categoria: "Tratamento veterinário",
-  },
-  {
-    id: "gatinhos",
-    titulo: "Ração para 18 gatinhos resgatados",
-    foto: "https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=900&q=80",
-    arrecadado: 740,
-    meta: 1200,
-    categoria: "Alimentação",
-  },
-  {
-    id: "thor",
-    titulo: "Carrinho de apoio para o Thor",
-    foto: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=900&q=80",
-    arrecadado: 960,
-    meta: 1800,
-    categoria: "Mobilidade",
-  },
+const initialCampaigns:Campaign[] = [
+ {id:"luna",titulo:"Cirurgia ortopédica da Luna",foto:"https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=900&q=80",arrecadado:1850,meta:3200,pix:"caritaspets@pix.example",petId:"mel"},
+ {id:"gatinhos",titulo:"Ração para gatinhos resgatados",foto:"https://images.unsplash.com/photo-1495360010541-f48722b34f7d?w=900&q=80",arrecadado:740,meta:1200,pix:"32987654000190",},
 ];
 
-const desaparecidos: Desaparecido[] = [
-  {
-    id: "belinha",
-    nome: "Belinha",
-    especie: "Cadela",
-    local: "Último local: Sudoeste - DF",
-    foto: "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=900&q=80",
-    detalhe: "Porte médio, coleira rosa, muito dócil.",
-  },
-  {
-    id: "mingau",
-    nome: "Mingau",
-    especie: "Gato",
-    local: "Último local: Lago Norte - DF",
-    foto: "https://images.unsplash.com/photo-1574158622682-e40e69881006?w=900&q=80",
-    detalhe: "Pelagem branca, olhos verdes, assustado com barulhos.",
-  },
-  {
-    id: "dora",
-    nome: "Dora",
-    especie: "Cadela",
-    local: "Último local: Taguatinga - DF",
-    foto: "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=900&q=80",
-    detalhe: "Filhote caramelo, mancha branca no peito.",
-  },
-];
+const initialMessages:Record<string,Message[]> = {
+ mel:[
+  {id:"1",sender:"protetor",text:"Olá! A Mel está disponível para adoção. Quer conversar sobre a rotina dela?",time:"18:40"},
+  {id:"2",sender:"eu",text:"Sim! Moro em apartamento e queria saber como ela se adapta.",time:"18:42"},
+  {id:"3",sender:"protetor",text:"Ela é tranquila e já está acostumada com passeios.",time:"18:43"},
+ ],
+};
 
-const navItems = [
-  { view: "inicio", label: "Início", Icone: Home },
-  { view: "adocao", label: "Adoção", Icone: PawPrint },
-  { view: "vaquinhas", label: "Vaquinhas", Icone: Heart },
-  { view: "desaparecidos", label: "Desaparecidos", Icone: Search },
-] as const;
+const brl=(v:number)=>new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(v);
+const onlyDigits=(v:string)=>v.replace(/\D/g,"");
+const maskCPF=(v:string)=>onlyDigits(v).slice(0,11).replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d)/,"$1.$2").replace(/(\d{3})(\d{1,2})$/,"$1-$2");
+const validCPF=(value:string)=>{
+ const cpf=onlyDigits(value); if(cpf.length!==11||/^([0-9])\1+$/.test(cpf)) return false;
+ let sum=0; for(let i=0;i<9;i++) sum+=+cpf[i]*(10-i); let d=(sum*10)%11;if(d===10)d=0;if(d!==+cpf[9])return false;
+ sum=0;for(let i=0;i<10;i++)sum+=+cpf[i]*(11-i);d=(sum*10)%11;if(d===10)d=0;return d===+cpf[10];
+};
+const validCEP=(value:string)=>/^7[0-2]\d{3}-?\d{3}$/.test(value.trim());
 
-const regioes = ["Todas", "Asa Norte", "Cruzeiro", "Águas Claras", "Sobradinho", "Gama"];
-const formatarMoeda = (valor: number) =>
-  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valor);
+function CaritasPetsApp(){
+ const [view,setView]=useState<View>("inicio");
+ const [auth,setAuth]=useState(false);
+ const [chatPet,setChatPet]=useState<Pet|null>(null);
+ const [support,setSupport]=useState(false);
+ const [admin,setAdmin]=useState(false);
+ const [pets,setPets]=useState<Pet[]>(()=>JSON.parse(localStorage.getItem("caritas-pets")||"null")||initialPets);
+ const [campaigns,setCampaigns]=useState<Campaign[]>(()=>JSON.parse(localStorage.getItem("caritas-campaigns")||"null")||initialCampaigns);
+ const [messages,setMessages]=useState<Record<string,Message[]>>(()=>JSON.parse(localStorage.getItem("caritas-messages")||"null")||initialMessages);
+ const [profile,setProfile]=useState<any>(()=>JSON.parse(localStorage.getItem("caritas-profile")||"null"));
+ useEffect(()=>localStorage.setItem("caritas-pets",JSON.stringify(pets)),[pets]);
+ useEffect(()=>localStorage.setItem("caritas-campaigns",JSON.stringify(campaigns)),[campaigns]);
+ useEffect(()=>localStorage.setItem("caritas-messages",JSON.stringify(messages)),[messages]);
+ useEffect(()=>{if(profile)localStorage.setItem("caritas-profile",JSON.stringify(profile));},[profile]);
 
-function CaritasPetsApp() {
-  const [view, setView] = useState<View>("adocao");
-  const [menuAberto, setMenuAberto] = useState(false);
-  const [loginAberto, setLoginAberto] = useState(false);
-  const [petChat, setPetChat] = useState<Pet | null>(null);
-  const [filtro, setFiltro] = useState("Todos");
-  const [regiao, setRegiao] = useState("Todas");
+ const nav=[
+  ["inicio","Início",Home],["pets","Adoção",PawPrint],["vaquinhas","Vaquinhas",Heart],["suporte","Suporte",Headphones]
+ ] as const;
 
-  const petsFiltrados = useMemo(
-    () =>
-      pets.filter((pet) => {
-        const porFiltro =
-          filtro === "Todos" ||
-          (filtro === "Filhotes" && pet.idade.includes("meses")) ||
-          (filtro === "Gatos" && pet.especie === "Gato") ||
-          (filtro === "Cães" && pet.especie === "Cão");
-        const porRegiao = regiao === "Todas" || pet.regiao === regiao;
-        return porFiltro && porRegiao;
-      }),
-    [filtro, regiao],
-  );
-
-  return (
-    <div className="min-h-screen bg-background font-serif text-foreground">
-      <header className="fixed inset-x-0 top-0 z-40 border-b border-primary/20 bg-card/95 backdrop-blur">
-        <div className="mx-auto grid max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
-          <button
-            type="button"
-            onClick={() => setView("inicio")}
-            className="flex min-w-0 items-center gap-2 text-left text-primary"
-            aria-label="Ir para o início"
-          >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-secondary text-primary">
-              <PawPrint size={22} strokeWidth={1.5} aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-2xl font-bold leading-none">Carita&apos;s Pets</span>
-              <span className="block truncate text-xs uppercase tracking-normal text-muted-foreground">
-                Brasília - DF
-              </span>
-            </span>
-          </button>
-
-          <div className="flex shrink-0 items-center gap-2">
-            <Button size="sm" onClick={() => setLoginAberto(true)}>
-              Entrar
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              size="icon"
-              onClick={() => setMenuAberto(true)}
-              aria-label="Abrir menu"
-              className="text-primary"
-            >
-              <Menu size={22} strokeWidth={2} aria-hidden />
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto w-full max-w-6xl px-4 pt-24 pb-28 md:pb-12">
-        <div className="hidden gap-2 pb-5 md:flex">
-          {navItems.map(({ view: itemView, label, Icone }) => (
-            <Button
-              key={itemView}
-              type="button"
-              variant={view === itemView ? "default" : "outline"}
-              onClick={() => setView(itemView)}
-            >
-              <Icone size={16} strokeWidth={1.5} aria-hidden />
-              {label}
-            </Button>
-          ))}
-        </div>
-
-        {view === "inicio" && <InicioView irParaAdocao={() => setView("adocao")} />}
-        {view === "adocao" && (
-          <AdocaoView
-            filtro={filtro}
-            setFiltro={setFiltro}
-            regiao={regiao}
-            setRegiao={setRegiao}
-            petsFiltrados={petsFiltrados}
-            abrirChat={setPetChat}
-          />
-        )}
-        {view === "vaquinhas" && <VaquinhasView />}
-        {view === "desaparecidos" && <DesaparecidosView />}
-      </main>
-
-      <MobileNav view={view} setView={setView} />
-      <Footer />
-
-      {menuAberto && <MenuLateral fechar={() => setMenuAberto(false)} abrirLogin={() => setLoginAberto(true)} />}
-      {loginAberto && <LoginModal fechar={() => setLoginAberto(false)} />}
-      {petChat && <ChatModal pet={petChat} fechar={() => setPetChat(null)} />}
+ return <div className="min-h-screen text-foreground font-serif">
+  <header className="sticky top-0 z-40 border-b border-primary/20 bg-white/95 backdrop-blur">
+   <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
+    <button onClick={()=>setView("inicio")} className="flex items-center gap-2 text-primary">
+      <span className="grid h-10 w-10 place-items-center rounded-full bg-secondary"><PawPrint size={22}/></span>
+      <span><b className="block text-2xl">Carita's Pets</b><small>Brasília - DF</small></span>
+    </button>
+    <div className="flex items-center gap-2">
+      {profile && <Button variant="outline" size="sm" onClick={()=>setView("admin")}><Settings size={16}/> Meu perfil</Button>}
+      <Button onClick={()=>setAuth(true)} className="bg-primary hover:bg-primary/90">{profile?"Meu cadastro":"Entrar / Cadastrar"}</Button>
     </div>
-  );
+   </div>
+  </header>
+
+  <main className="mx-auto max-w-6xl px-4 py-7 pb-28">
+   {view==="inicio" && <HomeView goPets={()=>setView("pets")} />}
+   {view==="pets" && <PetsView pets={pets} openChat={setChatPet}/>}
+   {view==="vaquinhas" && <CampaignView campaigns={campaigns}/>}
+   {view==="suporte" && <SupportView/>}
+   {view==="admin" && <AdminView pets={pets} setPets={setPets} campaigns={campaigns} setCampaigns={setCampaigns} messages={messages}/>}
+  </main>
+
+  <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-primary/20 bg-white/95 backdrop-blur">
+   <div className="mx-auto grid max-w-6xl grid-cols-4">
+    {nav.map(([key,label,Icon])=><button key={key} onClick={()=>setView(key)} className={`flex flex-col items-center gap-1 py-2 text-xs ${view===key?"text-primary font-bold":"text-muted-foreground"}`}><Icon size={21}/>{label}</button>)}
+   </div>
+  </nav>
+
+  {auth && <AuthModal close={()=>setAuth(false)} onSaved={(p:any)=>{setProfile(p);setAuth(false)}}/>}
+  {chatPet && <ChatModal pet={chatPet} messages={messages[chatPet.id]||[]} setMessages={setMessages} close={()=>setChatPet(null)}/>}
+  {support && <SupportModal close={()=>setSupport(false)}/>}
+  <button onClick={()=>setSupport(true)} className="fixed right-4 bottom-20 z-30 rounded-full bg-secondary p-3 text-secondary-foreground shadow-lg md:bottom-5" aria-label="Suporte"><Headphones/></button>
+ </div>;
 }
 
-function InicioView({ irParaAdocao }: { irParaAdocao: () => void }) {
-  return (
-    <section className="grid gap-5 md:grid-cols-[1.1fr_0.9fr] md:items-center">
-      <div className="surface-vintage p-6 md:p-8">
-        <p className="text-xs uppercase tracking-normal text-primary">Adoção responsável no DF</p>
-        <h1 className="mt-3 text-4xl font-bold leading-tight text-foreground md:text-5xl">
-          Encontre um novo amigo com segurança e carinho.
-        </h1>
-        <p className="mt-4 text-base text-muted-foreground">
-          A Carita&apos;s Pets conecta adotantes, ONGs e protetores independentes em uma experiência
-          digital acolhedora para cães e gatos de Brasília.
-        </p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <Button onClick={irParaAdocao}>Ver pets para adoção</Button>
-          <Button variant="secondary">Conhecer vaquinhas</Button>
-        </div>
-      </div>
-      <div className="relative overflow-hidden rounded-lg border border-primary/20 bg-card shadow-md">
-        <img
-          src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1000&q=80"
-          alt="Pessoa acariciando um cão adotado"
-          className="h-80 w-full object-cover"
-        />
-        <div className="absolute right-4 bottom-4 rounded-md bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground shadow">
-          100% digital e independente
-        </div>
-      </div>
-    </section>
-  );
+function HomeView({goPets}:{goPets:()=>void}){
+ return <div className="space-y-10">
+  <section className="grid gap-6 overflow-hidden rounded-2xl border border-primary/20 bg-white/90 p-7 shadow md:grid-cols-2 md:items-center md:p-10">
+   <div><p className="font-bold text-primary">ADOÇÃO RESPONSÁVEL NO DF</p><h1 className="mt-2 text-4xl font-bold md:text-5xl">Encontre seu novo melhor amigo no DF</h1><p className="mt-4 text-lg text-muted-foreground">Conectamos adotantes, ONGs e protetores independentes em uma plataforma 100% digital.</p><Button onClick={goPets} className="mt-6 bg-primary">Ver Pets Disponíveis</Button></div>
+   <img className="h-80 w-full rounded-xl object-cover" src="https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=1000&q=80" alt="Pessoa com cachorro"/>
+  </section>
+  <section><h2 className="text-3xl font-bold text-primary">Como funciona?</h2><div className="mt-4 grid gap-4 md:grid-cols-3">{[["1","Busque","Encontre cães e gatos disponíveis."],["2","Conecte-se","Converse com quem cuida do pet."],["3","Adote","Complete seu cadastro e faça a adoção responsável."]].map(([n,t,d])=><article className="surface-vintage p-5" key={n}><span className="grid h-10 w-10 place-items-center rounded-full bg-secondary font-bold">{n}</span><h3 className="mt-3 text-xl font-bold">{t}</h3><p className="text-muted-foreground">{d}</p></article>)}</div></section>
+  <section><h2 className="text-3xl font-bold text-primary">Dicas de posse responsável</h2><div className="mt-4 grid gap-4 md:grid-cols-3">{["Importância das telas de proteção","Adaptação do pet ao novo lar","Vacinas e acompanhamento veterinário"].map(t=><article className="rounded-xl bg-accent p-5" key={t}><ShieldCheck className="text-primary"/><h3 className="mt-3 font-bold">{t}</h3><p className="mt-1 text-sm">Informação e planejamento ajudam a criar um lar seguro.</p></article>)}</div></section>
+  <section className="grid gap-4 md:grid-cols-2"><div className="rounded-xl bg-primary p-6 text-primary-foreground"><b className="text-3xl">+500</b><p>Pets adotados</p></div><div className="rounded-xl bg-secondary p-6"><b className="text-3xl text-primary">20</b><p>ONGs e protetores parceiros</p></div></section>
+ </div>;
 }
 
-function AdocaoView({
-  filtro,
-  setFiltro,
-  regiao,
-  setRegiao,
-  petsFiltrados,
-  abrirChat,
-}: {
-  filtro: string;
-  setFiltro: (value: string) => void;
-  regiao: string;
-  setRegiao: (value: string) => void;
-  petsFiltrados: Pet[];
-  abrirChat: (pet: Pet) => void;
-}) {
-  return (
-    <section>
-      <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
-        <div className="min-w-0">
-          <p className="text-sm font-semibold text-primary">Catálogo de adoção</p>
-          <h1 className="text-3xl font-bold text-foreground">Pets disponíveis</h1>
-        </div>
-        <div className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-accent-foreground">
-          {petsFiltrados.length} pets encontrados
-        </div>
-      </div>
-
-      <div className="mt-5 flex gap-3 overflow-x-auto rounded-lg bg-accent p-3 shadow-sm">
-        {["Todos", "Filhotes", "Gatos", "Cães"].map((item) => (
-          <Button
-            key={item}
-            type="button"
-            size="sm"
-            variant={filtro === item ? "default" : "secondary"}
-            onClick={() => setFiltro(item)}
-            className="shrink-0"
-          >
-            {item === "Gatos" && <Cat size={15} strokeWidth={1.5} aria-hidden />}
-            {item === "Cães" && <Dog size={15} strokeWidth={1.5} aria-hidden />}
-            {item}
-          </Button>
-        ))}
-        <label className="flex shrink-0 items-center gap-2 rounded-md border border-primary/20 bg-card px-3 text-sm text-primary">
-          Região do DF
-          <select
-            value={regiao}
-            onChange={(event) => setRegiao(event.target.value)}
-            className="bg-card py-2 text-foreground outline-none"
-          >
-            {regioes.map((item) => (
-              <option key={item} value={item}>
-                {item === "Todas" ? "Todas" : item}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-
-      <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-        {petsFiltrados.map((pet) => (
-          <article key={pet.id} className="surface-vintage relative overflow-hidden">
-            <img src={pet.foto} alt={`${pet.nome}, ${pet.especie} para adoção`} className="h-56 w-full object-cover" />
-            <button
-              type="button"
-              aria-label={`Favoritar ${pet.nome}`}
-              className="absolute top-3 right-3 grid h-10 w-10 place-items-center rounded-full bg-secondary text-secondary-foreground shadow"
-            >
-              <Heart size={20} strokeWidth={1.6} aria-hidden />
-            </button>
-            <div className="space-y-3 p-5">
-              <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-                <div className="min-w-0">
-                  <h2 className="truncate text-2xl font-bold text-foreground">{pet.nome}</h2>
-                  <p className="text-sm text-muted-foreground">
-                    {pet.idade} · {pet.especie} · {pet.regiao}
-                  </p>
-                </div>
-                <span className="h-fit rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-foreground">
-                  {pet.temperamento}
-                </span>
-              </div>
-              <Button type="button" variant="secondary" className="w-full shadow-md" onClick={() => abrirChat(pet)}>
-                Tenho Interesse
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
+function PetsView({pets,openChat}:{pets:Pet[];openChat:(p:Pet)=>void}){
+ const [filter,setFilter]=useState("Todos");
+ const filtered=useMemo(()=>pets.filter(p=>filter==="Todos"||p.especie===filter),[pets,filter]);
+ return <section><div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-primary font-bold">CATÁLOGO</p><h1 className="text-3xl font-bold">Pets disponíveis</h1></div><div className="flex gap-2"><Button variant={filter==="Todos"?"default":"secondary"} onClick={()=>setFilter("Todos")}>Todos</Button><Button variant={filter==="Cão"?"default":"secondary"} onClick={()=>setFilter("Cão")}><Dog size={16}/>Cães</Button><Button variant={filter==="Gato"?"default":"secondary"} onClick={()=>setFilter("Gato")}><Cat size={16}/>Gatos</Button></div></div>
+ <div className="mt-6 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">{filtered.map(p=><article className="surface-vintage overflow-hidden" key={p.id}><img src={p.foto} alt={p.nome} className="h-56 w-full object-cover"/><div className="p-5"><h2 className="text-2xl font-bold">{p.nome}</h2><p className="text-muted-foreground">{p.idade} · {p.especie} · {p.regiao}</p><p className="mt-1 text-sm">Doador: {p.doador}</p><Button className="mt-4 w-full" onClick={()=>openChat(p)}><MessageCircle size={16}/> Tenho Interesse / Conversar</Button></div></article>)}</div></section>;
 }
 
-function VaquinhasView() {
-  return (
-    <section>
-      <p className="text-sm font-semibold text-primary">Vaquinha dos Pets</p>
-      <h1 className="text-3xl font-bold text-foreground">Apoie tratamentos e resgates</h1>
-      <div className="mt-6 grid gap-5 md:grid-cols-3">
-        {vaquinhas.map((campanha) => {
-          const porcentagem = Math.round((campanha.arrecadado / campanha.meta) * 100);
-          return (
-            <article key={campanha.id} className="surface-vintage overflow-hidden">
-              <img src={campanha.foto} alt={campanha.titulo} className="h-52 w-full object-cover" />
-              <div className="space-y-4 p-5">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-normal text-primary">{campanha.categoria}</p>
-                  <h2 className="mt-1 text-xl font-bold text-foreground">{campanha.titulo}</h2>
-                </div>
-                <Progress value={porcentagem} />
-                <p className="text-sm text-muted-foreground">
-                  {formatarMoeda(campanha.arrecadado)} arrecadados de {formatarMoeda(campanha.meta)}
-                </p>
-                <Button className="w-full">Doar via PIX</Button>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </section>
-  );
+function CampaignView({campaigns}:{campaigns:Campaign[]}){
+ const copy=(pix:string)=>navigator.clipboard?.writeText(pix);
+ return <section><p className="font-bold text-primary">VAQUINHAS</p><h1 className="text-3xl font-bold">Ajude um pet</h1><div className="mt-6 grid gap-5 md:grid-cols-2">{campaigns.map(c=>{const pct=Math.min(100,Math.round(c.arrecadado/c.meta*100));return <article className="surface-vintage overflow-hidden" key={c.id}><img src={c.foto} alt={c.titulo} className="h-52 w-full object-cover"/><div className="p-5"><h2 className="text-xl font-bold">{c.titulo}</h2><Progress value={pct} className="my-4"/><p>{brl(c.arrecadado)} de {brl(c.meta)} · {pct}%</p><div className="mt-4 flex gap-2"><Button onClick={()=>copy(c.pix)} className="flex-1"><Copy size={16}/> Copiar PIX</Button><Button variant="secondary" onClick={()=>alert(`Chave PIX: ${c.pix}`)}>Doar via PIX</Button></div></div></article>})}</div></section>;
 }
 
-function DesaparecidosView() {
-  return (
-    <section>
-      <p className="text-sm font-semibold text-primary">Alerta Pet DF</p>
-      <h1 className="text-3xl font-bold text-foreground">Animais desaparecidos</h1>
-      <div className="mt-6 grid gap-5 md:grid-cols-3">
-        {desaparecidos.map((pet) => (
-          <article key={pet.id} className="relative overflow-hidden rounded-lg border-2 border-dashed border-destructive bg-card shadow-md">
-            <div className="absolute top-4 -right-12 z-10 rotate-45 bg-accent px-12 py-1 text-xs font-bold text-accent-foreground shadow">
-              PROCURA-SE
-            </div>
-            <img src={pet.foto} alt={`${pet.nome}, ${pet.especie} desaparecido`} className="h-60 w-full object-cover" />
-            <div className="space-y-3 p-5">
-              <div>
-                <h2 className="text-2xl font-bold text-primary">{pet.nome}</h2>
-                <p className="text-sm text-muted-foreground">{pet.especie} · {pet.detalhe}</p>
-              </div>
-              <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                <MapPin size={16} strokeWidth={1.5} aria-hidden />
-                {pet.local}
-              </p>
-              <Button variant="secondary" className="w-full">
-                <Share2 size={16} strokeWidth={1.5} aria-hidden />
-                Compartilhar
-              </Button>
-            </div>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
+function AuthModal({close,onSaved}:{close:()=>void;onSaved:(p:any)=>void}){
+ const [tab,setTab]=useState<"entrar"|"cadastrar">("entrar"); const [role,setRole]=useState<Role|null>(null);
+ const [nome,setNome]=useState("");const [email,setEmail]=useState("");const [senha,setSenha]=useState("");const [whats,setWhats]=useState("");const [cep,setCep]=useState("");const [cpf,setCpf]=useState("");const [comprovante,setComprovante]=useState("");const [censo,setCenso]=useState({moradia:"",outrosPets:"",tempo:"",telas:""});
+ const [error,setError]=useState("");
+ function save(){setError("");if(!nome||!email||!senha)return setError("Preencha nome, e-mail e senha.");if(role==="adotante"&&( !validCEP(cep)||!validCPF(cpf)||!comprovante))return setError("Informe CEP válido do DF/entorno, CPF válido e comprovante.");const p={nome,email,whats,cep,cpf,comprovante,role,censo,perfilCompleto:true,createdAt:new Date().toISOString()};onSaved(p);}
+ return <Modal title="Entrar / Cadastrar" close={close}><div className="flex gap-2 border-b pb-3"><Button variant={tab==="entrar"?"default":"secondary"} onClick={()=>setTab("entrar")}>Entrar</Button><Button variant={tab==="cadastrar"?"default":"secondary"} onClick={()=>setTab("cadastrar")}>Cadastrar</Button></div>
+ {tab==="entrar"?<div className="space-y-4 pt-4"><Field label="E-mail"><input className="input-vintage" type="email" value={email} onChange={e=>setEmail(e.target.value)}/></Field><Field label="Senha"><input className="input-vintage" type="password" value={senha} onChange={e=>setSenha(e.target.value)}/></Field><button className="text-sm text-primary underline">Esqueci minha senha</button><Button className="w-full" onClick={()=>onSaved({nome:email.split("@")[0]||"Adotante",email,perfilCompleto:false})}>Entrar</Button></div>
+ :<div className="pt-4 space-y-4">{!role?<><p className="font-bold">Escolha seu perfil</p>{([["adotante","Sou Adotante"],["ong","Sou uma ONG"],["protetor","Sou Protetor Independente"]] as const).map(([r,t])=><button key={r} onClick={()=>setRole(r)} className="w-full rounded-xl border-2 border-primary/20 bg-secondary p-5 text-left font-bold hover:border-primary">{t}</button>)}</>:<><p className="text-sm text-primary font-bold">Cadastro: {role}</p><Field label="Nome"><input className="input-vintage" value={nome} onChange={e=>setNome(e.target.value)}/></Field><Field label="E-mail"><input className="input-vintage" type="email" value={email} onChange={e=>setEmail(e.target.value)}/></Field><Field label="Senha"><input className="input-vintage" type="password" value={senha} onChange={e=>setSenha(e.target.value)}/></Field><Field label="WhatsApp"><input className="input-vintage" value={whats} onChange={e=>setWhats(e.target.value)}/></Field>{role==="adotante"&&<><Field label="CPF"><input className="input-vintage" value={cpf} onChange={e=>setCpf(maskCPF(e.target.value))} placeholder="000.000.000-00"/></Field><Field label="CEP (apenas DF e entorno)"><input className="input-vintage" value={cep} onChange={e=>setCep(e.target.value)} placeholder="70000-000"/></Field><Field label="Comprovante de residência"><input className="input-vintage" type="file" accept=".pdf,image/*" onChange={e=>setComprovante(e.target.files?.[0]?.name||"")}/></Field><div className="rounded-xl bg-accent p-4"><b>Censo do adotante</b><div className="mt-3 grid gap-2"><select className="input-vintage" value={censo.moradia} onChange={e=>setCenso({...censo,moradia:e.target.value})}><option value="">Tipo de moradia</option><option>Casa</option><option>Apartamento</option></select><input className="input-vintage" placeholder="Já possui outros pets?" value={censo.outrosPets} onChange={e=>setCenso({...censo,outrosPets:e.target.value})}/><input className="input-vintage" placeholder="Tempo diário disponível" value={censo.tempo} onChange={e=>setCenso({...censo,tempo:e.target.value})}/><input className="input-vintage" placeholder="Possui telas de proteção?" value={censo.telas} onChange={e=>setCenso({...censo,telas:e.target.value})}/></div></div></>}{role!=="adotante"&&<Field label={role==="ong"?"CNPJ":"CPF"}><input className="input-vintage"/></Field>}{error&&<p className="rounded bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}<div className="flex gap-2"><Button variant="secondary" onClick={()=>setRole(null)}>Voltar</Button><Button onClick={save} className="flex-1">Salvar cadastro</Button></div></>}</div>}</Modal>;
 }
 
-function MobileNav({ view, setView }: { view: View; setView: (view: View) => void }) {
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-primary/20 bg-card/95 backdrop-blur md:hidden">
-      <ul className="grid grid-cols-4">
-        {navItems.map(({ view: itemView, label, Icone }) => (
-          <li key={itemView}>
-            <button
-              type="button"
-              onClick={() => setView(itemView)}
-              className={`flex w-full flex-col items-center gap-1 px-1 py-2 text-[11px] ${
-                view === itemView ? "text-primary" : "text-muted-foreground"
-              }`}
-            >
-              <Icone size={22} strokeWidth={1.4} aria-hidden />
-              <span className="truncate">{label}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-    </nav>
-  );
+function ChatModal({pet,messages,setMessages,close}:{pet:Pet;messages:Message[];setMessages:React.Dispatch<React.SetStateAction<Record<string,Message[]>>>;close:()=>void}){
+ const [text,setText]=useState("");const [file,setFile]=useState("");
+ const send=(attachment?:string)=>{if(!text.trim()&&!attachment)return;const m={id:crypto.randomUUID(),sender:"eu" as const,text:text.trim()||undefined,attachment,time:new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"})};setMessages(prev=>({...prev,[pet.id]:[...(prev[pet.id]||[]),m]}));setText("");setFile("");};
+ return <Modal title={`Chat · ${pet.nome}`} close={close}><div className="rounded-xl border bg-muted"><div className="flex items-center gap-3 border-b bg-accent p-3"><img src={pet.foto} alt={pet.nome} className="h-11 w-11 rounded-full object-cover"/><div><b>{pet.doador}</b><p className="text-xs">Conversa sobre adoção</p></div></div><div className="max-h-80 space-y-3 overflow-y-auto p-4">{messages.map(m=><div key={m.id} className={`flex ${m.sender==="eu"?"justify-end":"justify-start"}`}><div className={`max-w-[80%] rounded-xl p-3 text-sm ${m.sender==="eu"?"bg-secondary":"bg-white"}`}>{m.text&&<p>{m.text}</p>}{m.attachment&&<p className="mt-1 text-xs font-semibold">📎 {m.attachment}</p>}<small className="block mt-1 opacity-60">{m.time}</small></div></div>)}</div><div className="flex items-center gap-2 border-t bg-white p-3"><label className="cursor-pointer"><Paperclip/><input type="file" accept="image/*,audio/*" className="sr-only" onChange={e=>{const f=e.target.files?.[0];if(f){setFile(f.name);send(f.name)}}}/></label><input className="input-vintage flex-1" value={text} onChange={e=>setText(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Escreva uma mensagem..."/><Button size="icon" onClick={()=>send()}><Send size={16}/></Button></div></div></Modal>;
 }
 
-function MenuLateral({ fechar, abrirLogin }: { fechar: () => void; abrirLogin: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50">
-      <button type="button" aria-label="Fechar menu" onClick={fechar} className="absolute inset-0 bg-foreground/30" />
-      <aside className="absolute top-0 right-0 h-full w-72 max-w-[86vw] border-l border-primary/30 bg-secondary shadow-2xl">
-        <div className="flex items-center justify-between border-b border-primary/20 p-5">
-          <p className="text-xl font-bold text-primary">Menu</p>
-          <Button type="button" variant="ghost" size="icon" onClick={fechar} aria-label="Fechar menu">
-            <X size={20} strokeWidth={1.5} aria-hidden />
-          </Button>
-        </div>
-        <div className="divide-y divide-primary/20">
-          {[
-            "Meu Perfil",
-            "Meus Chats",
-            "Sair",
-          ].map((item) => (
-            <button
-              key={item}
-              type="button"
-              onClick={() => {
-                if (item === "Meu Perfil") abrirLogin();
-                fechar();
-              }}
-              className="block w-full px-5 py-4 text-left text-base font-semibold text-secondary-foreground hover:bg-white/40"
-            >
-              {item}
-            </button>
-          ))}
-        </div>
-        <div className="m-5 rounded-md border border-primary/20 bg-card/75 p-4 text-sm text-muted-foreground">
-          <ShieldCheck className="mb-2 text-primary" size={22} strokeWidth={1.5} aria-hidden />
-          ONGs e protetores verificados antes de conversar com adotantes.
-        </div>
-      </aside>
-    </div>
-  );
+function SupportView(){return <section><p className="font-bold text-primary">SUPORTE</p><h1 className="text-3xl font-bold">Fale com os produtores do site</h1><div className="mt-6 grid gap-5 md:grid-cols-2"><div className="surface-vintage p-6"><Headphones className="text-primary"/><h2 className="mt-3 text-xl font-bold">Central de atendimento</h2><p className="mt-2 text-muted-foreground">Envie dúvidas, sugestões, problemas de cadastro ou relatos sobre a plataforma.</p><SupportForm/></div><div className="rounded-xl bg-accent p-6"><b className="text-xl">Equipe Carita's Pets</b><p className="mt-2">Atendimento da equipe responsável pelo projeto e pela experiência da plataforma.</p><p className="mt-4 text-sm">Para questões sobre um pet específico, use o chat do próprio anúncio.</p></div></div></section>}
+
+function SupportForm(){const [sent,setSent]=useState(false);return <div className="mt-5 space-y-3"><input className="input-vintage" placeholder="Seu nome"/><input className="input-vintage" placeholder="E-mail"/><textarea className="input-vintage min-h-28" placeholder="Como podemos ajudar?"/><Button onClick={()=>setSent(true)}>{sent?"Mensagem enviada!":"Enviar para suporte"}</Button></div>}
+
+function AdminView({pets,setPets,campaigns,setCampaigns,messages}:{pets:Pet[];setPets:React.Dispatch<React.SetStateAction<Pet[]>>;campaigns:Campaign[];setCampaigns:React.Dispatch<React.SetStateAction<Campaign[]>>;messages:Record<string,Message[]>}){
+ const [tab,setTab]=useState<"pets"|"ong"|"chats"|"vaquinhas">("pets");const [name,setName]=useState("");const [photo,setPhoto]=useState("");const [meta,setMeta]=useState("");
+ return <section><p className="font-bold text-primary">ADMINISTRAÇÃO · MOCK</p><h1 className="text-3xl font-bold">Painel da Carita's Pets</h1><div className="mt-5 flex flex-wrap gap-2">{(["pets","ong","chats","vaquinhas"] as const).map(t=><Button key={t} variant={tab===t?"default":"secondary"} onClick={()=>setTab(t)}>{t==="pets"?"Pets":t==="ong"?"ONGs/Protetores":t==="chats"?"Chats":"Vaquinhas"}</Button>)}</div>
+ {tab==="pets"&&<div className="mt-5 surface-vintage p-5"><h2 className="text-xl font-bold">Cadastrar pet real</h2><div className="mt-3 grid gap-2 md:grid-cols-3"><input className="input-vintage" placeholder="Nome" value={name} onChange={e=>setName(e.target.value)}/><input className="input-vintage" placeholder="URL da foto" value={photo} onChange={e=>setPhoto(e.target.value)}/><Button onClick={()=>{if(name){setPets(p=>[...p,{id:crypto.randomUUID(),nome:name,especie:"Cão",idade:"A informar",regiao:"DF",foto:photo||initialPets[0].foto,temperamento:"A informar",doador:"Cadastro admin"}]);setName("");setPhoto("")}}><Plus/>Cadastrar</Button></div><div className="mt-5 space-y-2">{pets.map(p=><div className="flex items-center justify-between rounded border bg-white p-3" key={p.id}><span>{p.nome} · {p.especie}</span><button onClick={()=>setPets(list=>list.filter(x=>x.id!==p.id))}><Trash2 size={17}/></button></div>)}</div></div>}
+ {tab==="ong"&&<div className="mt-5 surface-vintage p-5"><h2 className="text-xl font-bold">ONGs e protetores</h2><p className="mt-2 text-muted-foreground">Área preparada para cadastro e verificação dos parceiros.</p><div className="mt-4 grid gap-3 md:grid-cols-2"><div className="rounded bg-secondary p-4"><b>Patinhas do Cerrado</b><p>ONG · Brasília - DF</p></div><div className="rounded bg-secondary p-4"><b>Ana Protetora</b><p>Protetora independente · DF</p></div></div></div>}
+ {tab==="chats"&&<div className="mt-5 space-y-3">{Object.keys(messages).map(id=><div className="surface-vintage p-4" key={id}><b>Chat do pet: {id}</b><p>{messages[id].length} mensagens salvas</p></div>)}</div>}
+ {tab==="vaquinhas"&&<div className="mt-5 surface-vintage p-5"><h2 className="text-xl font-bold">Cadastrar campanha</h2><div className="mt-3 grid gap-2 md:grid-cols-3"><input className="input-vintage" placeholder="Título" value={name} onChange={e=>setName(e.target.value)}/><input className="input-vintage" placeholder="Meta em R$" value={meta} onChange={e=>setMeta(e.target.value)}/><Button onClick={()=>{if(name){setCampaigns(c=>[...c,{id:crypto.randomUUID(),titulo:name,foto:initialCampaigns[0].foto,arrecadado:0,meta:Number(meta)||0,pix:"chave-pix-a-cadastrar"}]);setName("");setMeta("")}}><Plus/>Cadastrar campanha</Button></div><div className="mt-5 space-y-2">{campaigns.map(c=><div className="rounded border bg-white p-3" key={c.id}><b>{c.titulo}</b><p>{brl(c.arrecadado)} / {brl(c.meta)}</p></div>)}</div></div>}
+ </section>;
 }
 
-function LoginModal({ fechar }: { fechar: () => void }) {
-  return (
-    <ModalShell titulo="Entrar ou cadastrar" fechar={fechar}>
-      <div className="space-y-4">
-        <label className="block text-sm font-semibold text-foreground">
-          E-mail
-          <input className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" type="email" placeholder="voce@email.com" />
-        </label>
-        <label className="block text-sm font-semibold text-foreground">
-          Senha
-          <input className="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring" type="password" placeholder="Sua senha" />
-        </label>
-        <label className="flex cursor-pointer items-center gap-3 rounded-md border border-dashed border-primary/40 bg-accent/70 p-4 text-sm font-semibold text-accent-foreground">
-          <Upload size={18} strokeWidth={1.5} aria-hidden />
-          Upload do comprovante de residência
-          <input type="file" className="sr-only" />
-        </label>
-        <Button className="w-full" onClick={fechar}>Entrar</Button>
-      </div>
-    </ModalShell>
-  );
-}
-
-function ChatModal({ pet, fechar }: { pet: Pet; fechar: () => void }) {
-  const [resposta, setResposta] = useState("");
-  const [mensagens, setMensagens] = useState([
-    "Olá! Responda 3 perguntinhas rápidas: Você mora em casa ou apartamento?",
-  ]);
-
-  function enviar() {
-    if (!resposta.trim()) return;
-    setMensagens((lista) => [...lista, resposta.trim(), "Obrigada! Você tem telas de proteção e tempo diário para adaptação?"]);
-    setResposta("");
-  }
-
-  return (
-    <ModalShell titulo={`Conversa sobre ${pet.nome}`} fechar={fechar}>
-      <div className="overflow-hidden rounded-lg border border-primary/20 bg-muted">
-        <div className="flex items-center gap-3 border-b border-primary/20 bg-accent p-3">
-          <img src={pet.foto} alt={pet.nome} className="h-11 w-11 rounded-full object-cover" />
-          <div>
-            <p className="font-bold text-primary">Bot da ONG Patinhas do Cerrado</p>
-            <p className="text-xs text-muted-foreground">Triagem rápida pelo WhatsApp</p>
-          </div>
-        </div>
-        <div className="max-h-80 space-y-3 overflow-y-auto p-4">
-          {mensagens.map((mensagem, index) => {
-            const usuario = index % 2 === 1;
-            return (
-              <div key={`${mensagem}-${index}`} className={`flex ${usuario ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`max-w-[82%] rounded-lg px-4 py-2 text-sm shadow-sm ${
-                    usuario ? "bg-secondary text-secondary-foreground" : "bg-card text-foreground"
-                  }`}
-                >
-                  {mensagem}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-        <div className="flex gap-2 border-t border-primary/20 bg-card p-3">
-          <input
-            value={resposta}
-            onChange={(event) => setResposta(event.target.value)}
-            onKeyDown={(event) => event.key === "Enter" && enviar()}
-            className="min-w-0 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
-            placeholder="Digite sua resposta..."
-          />
-          <Button onClick={enviar}>
-            <MessageCircle size={16} strokeWidth={1.5} aria-hidden />
-            Enviar
-          </Button>
-        </div>
-      </div>
-    </ModalShell>
-  );
-}
-
-function ModalShell({ titulo, fechar, children }: { titulo: string; fechar: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-foreground/35 p-4">
-      <section className="w-full max-w-lg rounded-lg border border-primary/20 bg-card shadow-2xl">
-        <div className="flex items-center justify-between border-b border-border p-4">
-          <h2 className="text-xl font-bold text-primary">{titulo}</h2>
-          <Button type="button" variant="ghost" size="icon" onClick={fechar} aria-label="Fechar modal">
-            <X size={20} strokeWidth={1.5} aria-hidden />
-          </Button>
-        </div>
-        <div className="p-4">{children}</div>
-      </section>
-    </div>
-  );
-}
-
-function Footer() {
-  return (
-    <footer className="bg-primary px-4 py-8 pb-24 text-primary-foreground md:pb-8">
-      <div className="mx-auto max-w-6xl space-y-2 text-sm">
-        <p>Brasília - DF | Somos uma plataforma 100% digital e independente, não possuímos sede física.</p>
-        <p>
-          Desenvolvido por: Letícia da Silva Lima, Letícia Krixi de Souza, Maíra Gomes Rodrigues,
-          Sophia Abarno Lemos e Vitória Santana Barbosa.
-        </p>
-      </div>
-    </footer>
-  );
-}
+function Field({label,children}:{label:string;children:React.ReactNode}){return <label className="block text-sm font-semibold">{label}{children}</label>}
+function Modal({title,close,children}:{title:string;close:()=>void;children:React.ReactNode}){return <div className="fixed inset-0 z-50 grid place-items-center bg-black/40 p-4"><section className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl"><header className="flex items-center justify-between border-b p-4"><h2 className="text-xl font-bold text-primary">{title}</h2><button onClick={close}><X/></button></header><div className="p-5">{children}</div></section></div>}
+function SupportModal({close}:{close:()=>void}){return <Modal title="Suporte" close={close}><SupportForm/></Modal>}
